@@ -2,5 +2,46 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "newProjectRoot": "projects",
-  "projects": {}
+  "projects": {
+    "lui2mi-ecommerce-client": {
+      "projectType": "library",
+      "root": "projects/lui2mi-ecommerce-client",
+      "sourceRoot": "projects/lui2mi-ecommerce-client/src",
+      "prefix": "lui2mi",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "tsConfig": "projects/lui2mi-ecommerce-client/tsconfig.lib.json",
+            "project": "projects/lui2mi-ecommerce-client/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/lui2mi-ecommerce-client/tsconfig.lib.prod.json"
+            }
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/lui2mi-ecommerce-client/src/test.ts",
+            "tsConfig": "projects/lui2mi-ecommerce-client/tsconfig.spec.json",
+            "karmaConfig": "projects/lui2mi-ecommerce-client/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/lui2mi-ecommerce-client/tsconfig.lib.json",
+              "projects/lui2mi-ecommerce-client/tsconfig.spec.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
+    }},
+  "defaultProject": "lui2mi-ecommerce-client"
 }
