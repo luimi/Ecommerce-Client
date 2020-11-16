@@ -9,18 +9,24 @@ export class CartService {
   public cartProducts = [];
   public cartTotal = 0;
 
-  constructor(private utils: UtilsService) { }
-  
+  constructor(private utils: UtilsService) {
+    this.cart = this.utils.getStoredArray("cart");
+  }
+
 
   public countCartProducts() {
     return this.cart.length;
   }
   public addCartProduct(product, qty?) {
     if (!this.isCartProduct(product.id)) {
+      if (this.cart.length === this.cartProducts.length) {
+        this.cartProducts.push({ product: product, qty: qty ? qty : "1" });
+      }
       this.cart.push({ id: product.id, qty: qty ? qty : "1" });
     }
     this.utils.setStoredArray("cart", this.cart);
     this.cart = this.utils.getStoredArray("cart");
+    this.updateCartTotal();
   }
   public isCartProduct(id) {
     return this.cart
@@ -50,13 +56,10 @@ export class CartService {
     this.updateCartTotal();
   }
   public removeCartProduct(id) {
-    this.cartProducts.forEach((product, index) => {
-      if (product.id === id) {
-        this.cartProducts.splice(index, 1);
-        this.cart.splice(index, 1);
-        this.utils.setStoredArray("cart", this.cart);
-      }
-    });
+    let index = this.getCartIndex(id);
+    this.cartProducts.splice(index, 1);
+    this.cart.splice(index, 1);
+    this.utils.setStoredArray("cart", this.cart);
     this.updateCartTotal();
   }
   public updateCartTotal() {
@@ -67,16 +70,19 @@ export class CartService {
     this.cartTotal = total;
   }
   public setCartProductQuantity(id, qty) {
-    this.cartProducts.forEach((product, index) => {
-      if (product.id === id) {
-        product.qty = qty;
-        this.cart[index].qty = qty;
-        this.utils.setStoredArray("cart", this.cart);
-      }
-    });
+    let index = this.getCartIndex(id);
+    if (this.cartProducts.length > 0) {
+      this.cartProducts[index].qty = qty;
+    }
+    this.cart[index].qty = qty;
+    this.utils.setStoredArray("cart", this.cart);
+    this.updateCartTotal();
   }
   public clearCart() {
     this.utils.setStoredArray('cart', []);
+    this.cart = [];
+    this.cartProducts = [];
+    this.cartTotal = 0;
   }
   public getCartIndex(id) {
     let index = 0;
@@ -88,15 +94,25 @@ export class CartService {
     }
     return index;
   }
-  public async createCartDelivey(address, callback) {
+  public async createCartDelivery(address, callback) {
     const Delivery = Parse.Object.extend("ECommerceDelivery");
-      let delivery = new Delivery();
-      delivery.set('user', Parse.User.current());
-      delivery.set('products', this.utils.getStoredArray("cart"));
-      delivery.set('address', address);
-      delivery.set('status', 1);
-      const adminRole = await this.utils.getAdminRole();
-      delivery.setACL(this.utils.ACLPublicRead(adminRole));
-      await delivery.save();
+    let delivery = new Delivery();
+    delivery.set('user', Parse.User.current());
+    delivery.set('products', this.utils.getStoredArray("cart"));
+    delivery.set('address', address);
+    delivery.set('status', 1);
+    const ACL = await this.utils.getACL();
+    delivery.setACL(ACL);
+    delivery = await delivery.save();
+    this.clearCart();
+    //this.deliveryCtrl.Deliveries.unshift(delivery);
+    //this.mainCtrl.mainDeliveries.unshift(delivery);
+    if(callback){
+      callback(delivery);
+    }
+  }
+  public getCartProductQty(id) {
+    let index = this.getCartIndex(id);
+    return this.cart[index].qty;
   }
 }

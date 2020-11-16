@@ -9,5 +9,6 @@ export * from './lib/main.service';
 export * from './lib/address.service';
 export * from './lib/chat.service';
 export * from './lib/delivery.service';
-export * from './lib/address.service';
+export * from './lib/cart.service';
 export * from './lib/product.service';
+export * from './lib/utils.service';

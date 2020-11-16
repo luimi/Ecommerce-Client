@@ -10,12 +10,14 @@ export class MainService {
   public mainPromos = [];
   public mainProducts = [];
   public mainDeliveries = [];
+  private mainProductsCount = 0;
 
   constructor(private deliveryCtrl: DeliveryService, private productCtrl: ProductService, private chatCtrl: ChatService) { }
 
   public async getMainLists() {
-    this.mainPromos = await this.productCtrl.promoProductQuery.find();
-    this.mainProducts = await this.productCtrl.mainProductQuery.find();
+    this.mainProductsCount = await this.productCtrl.mainProductQuery.count();
+    this.mainPromos = await this.productCtrl.promoProductQuery.limit(this.productCtrl.config.promoLimit).find();
+    this.mainProducts = await this.productCtrl.mainProductQuery.limit(this.productCtrl.config.mainLimit).find();
     this.mainDeliveries = await this.deliveryCtrl.deliveriesQuery.find();
     if(this.mainDeliveries.length>0){
       this.chatCtrl.getChatUnreadMessages(this.mainDeliveries[0]);
@@ -31,5 +33,16 @@ export class MainService {
     } else {
       this.getMainLists();
     }
+  }
+  public async getMoreProducts(complete, disable){
+    if(this.mainProducts.length < this.mainProductsCount ){
+      let result = await this.productCtrl.mainProductQuery.limit(this.productCtrl.config.mainLimit).skip(this.mainProducts.length).find();
+      this.mainProducts = this.mainProducts.concat(result);
+      complete();
+      if(this.mainProducts.length === this.mainProductsCount){
+        disable();
+      }
+    }
+    
   }
 }

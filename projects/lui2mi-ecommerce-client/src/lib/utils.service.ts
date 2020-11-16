@@ -35,6 +35,17 @@ export class UtilsService {
   public async getAdminRole() {
     return await new Parse.Query(Parse.Role).equalTo("name","Administrator").first();
   }
+  public async getACL(){
+    var ACL = new Parse.ACL();
+    ACL.setPublicReadAccess(false);
+    ACL.setWriteAccess(Parse.User.current(),true);
+    ACL.setReadAccess(Parse.User.current(),true);
+    let adminRole = await new Parse.Query(Parse.Role).equalTo("name","Administrator").first();
+    ACL.setRoleWriteAccess(adminRole, true);
+    ACL.setRoleReadAccess(adminRole, true);
+    //TODO agregar rol de repartidor
+    return ACL;
+  }
 
   public parseObjectToObject(o, params){
     const result = {};
@@ -65,5 +76,13 @@ export class UtilsService {
   public parseGenericObject(c){
     const Generic = Parse.Object.extend(c);
     return new Generic();
+  }
+  public parseGenericObjectWithId(c, id){
+    let obj = this.parseGenericObject(c);
+    obj.id = id;
+    return obj;
+  }
+  public isLogedIn(){
+    return Parse.User.current();
   }
 }
