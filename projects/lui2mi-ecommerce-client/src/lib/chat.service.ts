@@ -12,27 +12,29 @@ export class ChatService {
   public chatUnreadMessages = {};
   private chatUnreadMessagesSubscription;
 
-  public async getChatUnreadMessages(delivery) {
+  public async getChatUnreadMessages() {
     const user = Parse.User.current();
-    const query = new Parse.Query('ECommerceChatMessage').select('delivery').notEqualTo('readedBy', user).notEqualTo('from', user).equalTo('delivery', delivery);
+    const query = new Parse.Query('ECommerceChatMessage').select('delivery').notEqualTo('readedBy', user).notEqualTo('from', user);
     let unread = await query.find();
     unread.forEach(message => {
       this.addUnreadMessage(message);
     });
-    this.chatUnreadMessagesSubscription = await query.subscribe();
-    this.chatUnreadMessagesSubscription.on('create', (message)=> {
-      this.addUnreadMessage(message);
-    });
+    if (!this.chatUnreadMessagesSubscription) {
+      this.chatUnreadMessagesSubscription = await query.subscribe();
+      this.chatUnreadMessagesSubscription.on('create', (message) => {
+        this.addUnreadMessage(message);
+      });
+    }
   }
-  private addUnreadMessage(message){
-    if(!this.chatUnreadMessages[message.get('delivery').id]){
+  private addUnreadMessage(message) {
+    if (!this.chatUnreadMessages[message.get('delivery').id]) {
       this.chatUnreadMessages[message.get('delivery').id] = [];
     }
     this.chatUnreadMessages[message.get('delivery').id].push(message);
   }
   public async getChatMessages(deliveryId, update) {
     const user = Parse.User.current();
-    let delivery = this.utils.parseGenericObjectWithId("ECommerceDelivery",deliveryId);
+    let delivery = this.utils.parseGenericObjectWithId("ECommerceDelivery", deliveryId);
     const queryMessages = new Parse.Query('ECommerceChatMessage').equalTo('delivery', delivery).include('from');
     let messages = await queryMessages.find();
     this.chatMessagesSubscription = await queryMessages.subscribe();
@@ -42,10 +44,10 @@ export class ChatService {
         update(message);
       }
     });
-    this.setReadedUnreadedMessages(delivery,user);
+    this.setReadedUnreadedMessages(delivery, user);
     return messages;
   }
-  private async setReadedUnreadedMessages(delivery, user){
+  private async setReadedUnreadedMessages(delivery, user) {
 
     const queryUnreadMessages = new Parse.Query('ECommerceChatMessage').select('delivery').notEqualTo('readedBy', user).notEqualTo('from', user).equalTo('delivery', delivery);
     const unread = await queryUnreadMessages.find();
@@ -53,7 +55,7 @@ export class ChatService {
       message.relation('readedBy').add(user);
     });
     await Parse.Object.saveAll(unread);
-    if(this.chatUnreadMessages[delivery.id]){
+    if (this.chatUnreadMessages[delivery.id]) {
       delete this.chatUnreadMessages[delivery.id];
     }
   }
@@ -62,7 +64,7 @@ export class ChatService {
   }
   public async sendChatMessage(deliveryId, text) {
     let message = this.utils.parseGenericObject('ECommerceChatMessage');
-    let delivery = this.utils.parseGenericObjectWithId("ECommerceDelivery",deliveryId);
+    let delivery = this.utils.parseGenericObjectWithId("ECommerceDelivery", deliveryId);
     message.set('delivery', delivery);
     message.set('from', Parse.User.current());
     message.set('message', text);

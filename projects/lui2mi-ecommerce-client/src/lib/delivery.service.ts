@@ -13,7 +13,7 @@ export class DeliveryService {
     .descending('createdAt')
     .greaterThan('status', 0)
     .lessThan('status', 4);
-
+  public deliveriesQuerySubscription;
   constructor() { }
 
   public async getDelivery(id) {
@@ -22,7 +22,18 @@ export class DeliveryService {
       .include('receipt')
       .get(id);
   }
-
+  public async subscribeDeliveryUpdates(id, update){
+    let query = new Parse.Query("ECommerceDelivery")
+    .include('address')
+    .include('receipt')
+    .equalTo('objectId',id);
+    let subscripction = await query.subscribe();
+    subscripction.on('update',update);
+    return subscripction;
+  }
+  public unsubscribeDeliveryUpdates(subscripction){
+    subscripction.unsubscribe();
+  }
   public async getDeliveries() {
     this.Deliveries = await new Parse.Query("ECommerceDelivery")
       .include('address')
@@ -30,7 +41,12 @@ export class DeliveryService {
       .descending('createdAt')
       .find();
   }
-  public subscribeMainDelivery(update?) {
+  public async subscribeMainDelivery(update,create) {
+    if(!this.deliveriesQuerySubscription){
+      this.deliveriesQuerySubscription = await this.deliveriesQuery.subscribe();
+      this.deliveriesQuerySubscription.on('update',update);
+      this.deliveriesQuerySubscription.on('create',create);
+    }
     /*const lqc = this.parseUtils.getLiveQueryClient();
     const subscription = lqc.subscribe(this.deliveries);
     if(update){

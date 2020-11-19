@@ -20,8 +20,13 @@ export class MainService {
     this.mainProducts = await this.productCtrl.mainProductQuery.limit(this.productCtrl.config.mainLimit).find();
     this.mainDeliveries = await this.deliveryCtrl.deliveriesQuery.find();
     if(this.mainDeliveries.length>0){
-      this.chatCtrl.getChatUnreadMessages(this.mainDeliveries[0]);
+      this.chatCtrl.getChatUnreadMessages();
     }
+    this.deliveryCtrl.subscribeMainDelivery((delivery)=>{
+      console.log('update');
+    }, (delivery)=> {
+      this.mainDeliveries.unshift(delivery);
+    });
   }
   public async searchMainProducts(text) {
     if (text != "") {
@@ -43,6 +48,5 @@ export class MainService {
         disable();
       }
     }
-    
   }
 }

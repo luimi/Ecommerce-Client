@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import Parse from 'parse';
+import { UtilsService } from './utils.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AddressService {
   public addresses = [];
-  constructor() { }
+  constructor(private utils: UtilsService) { }
   
 
   public async getAdresses() {
@@ -19,15 +20,13 @@ export class AddressService {
   }
 
   public async saveAdress(data) {
-    const Address = Parse.Object.extend('ECommerceAddress');
-    const address = new Address();
+    const address = this.utils.parseGenericObject('ECommerceAddress');
     address.set('status', true);
     address.set('user', Parse.User.current());
-    data.location = new Parse.GeoPoint({ latitude: data.location[0], longitude: data.location[1] });
-    const ACL = new Parse.ACL();
-    ACL.setPublicReadAccess(true);
-    ACL.setWriteAccess(Parse.User.current(), true);
-    address.setACL(ACL);
+    address.set('location', data.location);
+    address.set('address',data.address);
+    address.set('extra',data.extra);
+    address.setACL(await this.utils.getACL());
     return await address.save(data);
   }
 }

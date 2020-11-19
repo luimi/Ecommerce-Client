@@ -12,3 +12,4 @@ export * from './lib/delivery.service';
 export * from './lib/cart.service';
 export * from './lib/product.service';
 export * from './lib/utils.service';
+export * from './lib/map.service';
