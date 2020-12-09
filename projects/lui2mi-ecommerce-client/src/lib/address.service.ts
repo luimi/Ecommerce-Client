@@ -14,7 +14,6 @@ export class AddressService {
     if(this.addresses.length === 0){
       this.addresses = await new Parse.Query('ECommerceAddress').equalTo('status', true).find();
     }
-    
   }
 
   public async deleteAddress(address) {
@@ -31,5 +30,9 @@ export class AddressService {
     address.set('extra',data.extra);
     address.setACL(await this.utils.getACL());
     return await address.save(data);
+  }
+
+  public clearAddresses(){
+    this.addresses = [];
   }
 }
