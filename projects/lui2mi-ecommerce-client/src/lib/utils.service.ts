@@ -85,4 +85,17 @@ export class UtilsService {
   public isLogedIn(){
     return Parse.User.current();
   }
+  public getCurrentUser(){
+    return Parse.User.current();
+  }
+  public getArrayIndexOf(array,param,value){
+    let index = -1;
+    for (let i = 0; i < array.length; i++) {
+      if (array[i][param] === value) {
+        index = i;
+        break;
+      }
+    }
+    return index;
+  }
 }

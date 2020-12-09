@@ -11,7 +11,10 @@ export class AddressService {
   
 
   public async getAdresses() {
-    this.addresses = await new Parse.Query('ECommerceAddress').equalTo('status', true).find();
+    if(this.addresses.length === 0){
+      this.addresses = await new Parse.Query('ECommerceAddress').equalTo('status', true).find();
+    }
+    
   }
 
   public async deleteAddress(address) {

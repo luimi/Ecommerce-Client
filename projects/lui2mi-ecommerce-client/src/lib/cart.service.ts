@@ -6,27 +6,21 @@ import Parse from 'parse';
 })
 export class CartService {
   private cart = [];
-  public cartProducts = [];
   public cartTotal = 0;
 
   constructor(private utils: UtilsService) {
-    this.cart = this.utils.getStoredArray("cart");
+    this.getCartProducts();
   }
-
-
   public countCartProducts() {
     return this.cart.length;
   }
   public addCartProduct(product, qty?) {
     if (!this.isCartProduct(product.id)) {
-      if (this.cart.length === this.cartProducts.length) {
-        this.cartProducts.push({ product: product, qty: qty ? qty : "1" });
-      }
-      this.cart.push({ id: product.id, qty: qty ? qty : "1" });
+      this.cart.push({ id: product.id, qty: (qty ? qty : "1" ), p: product});
     }
-    this.utils.setStoredArray("cart", this.cart);
-    this.cart = this.utils.getStoredArray("cart");
     this.updateCartTotal();
+    this.updateCart();
+    
   }
   public isCartProduct(id) {
     return this.cart
@@ -39,50 +33,46 @@ export class CartService {
     //TODO Caso cuando el producto se elimine
     const cart = this.utils.getStoredArray("cart");
     const objects = cart.map((o) => {
-      const Product = Parse.Object.extend("ECommerceProduct");
-      const product = new Product();
-      product.id = o.id;
-      return product;
+      return this.utils.parseGenericObjectWithId("ECommerceProduct",o.id);
     });
     const products = await Parse.Object.fetchAllIfNeeded(objects);
     products.forEach((product) => {
       cart.forEach((cartProduct) => {
         if (product.id === cartProduct.id) {
-          cartProduct.product = product;
+          cartProduct.p = product;
         }
       });
     });
-    this.cartProducts = cart;
+    this.cart = cart;
     this.updateCartTotal();
+    
   }
   public removeCartProduct(id) {
     let index = this.getCartIndex(id);
-    this.cartProducts.splice(index, 1);
     this.cart.splice(index, 1);
-    this.utils.setStoredArray("cart", this.cart);
     this.updateCartTotal();
+    this.updateCart();
   }
   public updateCartTotal() {
     let total = 0;
-    this.cartProducts.forEach(o => {
-      total += (o.product.get('price') - (o.product.get('isDiscount') ? (o.product.get('price') * (o.product.get('discountPercentage') / 100)) : 0)) * parseInt(o.qty);
+    this.cart.forEach(o => {
+      total += (o.p.get('price') - (o.p.get('isDiscount') ? (o.p.get('price') * (o.p.get('discountPercentage') / 100)) : 0)) * parseInt(o.qty);
     });
     this.cartTotal = total;
   }
   public setCartProductQuantity(id, qty) {
     let index = this.getCartIndex(id);
-    if (this.cartProducts.length > 0) {
-      this.cartProducts[index].qty = qty;
+    if (this.cart.length > 0) {
+      this.cart[index].qty = qty;
     }
     this.cart[index].qty = qty;
-    this.utils.setStoredArray("cart", this.cart);
     this.updateCartTotal();
+    this.updateCart();
   }
   public clearCart() {
-    this.utils.setStoredArray('cart', []);
     this.cart = [];
-    this.cartProducts = [];
-    this.cartTotal = 0;
+    this.updateCartTotal();
+    this.updateCart();
   }
   public getCartIndex(id) {
     let index = 0;
@@ -105,8 +95,6 @@ export class CartService {
     delivery.setACL(ACL);
     delivery = await delivery.save();
     this.clearCart();
-    //this.deliveryCtrl.Deliveries.unshift(delivery);
-    //this.mainCtrl.mainDeliveries.unshift(delivery);
     if(callback){
       callback(delivery);
     }
@@ -114,5 +102,12 @@ export class CartService {
   public getCartProductQty(id) {
     let index = this.getCartIndex(id);
     return this.cart[index].qty;
+  }
+  public updateCart(){
+    let cart = [];
+    this.cart.forEach(product => {
+      cart.push({id: product.id, qty:product.qty});
+    });
+    this.utils.setStoredArray("cart",cart);
   }
 }

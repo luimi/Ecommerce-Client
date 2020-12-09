@@ -5,26 +5,37 @@ import { UtilsService } from './utils.service';
   providedIn: 'root'
 })
 export class ChatService {
-
-  constructor(private utils: UtilsService) { }
-
   private chatMessagesSubscription;
   public chatUnreadMessages = {};
-  private chatUnreadMessagesSubscription;
+  private currentChat :any;
 
-  public async getChatUnreadMessages() {
-    const user = Parse.User.current();
-    const query = new Parse.Query('ECommerceChatMessage').select('delivery').notEqualTo('readedBy', user).notEqualTo('from', user);
-    let unread = await query.find();
+  constructor(private utils: UtilsService) { 
+    this.connectToChatServer();
+  }
+
+  public async connectToChatServer() {
+    if (!this.utils.isLogedIn() || this.chatMessagesSubscription) {
+      return;
+    }
+    const chatMessagesQuery = new Parse.Query('ECommerceChatMessage');
+    this.chatMessagesSubscription = await chatMessagesQuery.subscribe();
+    this.chatMessagesSubscription.on('create',(message)=>{
+      if(this.currentChat && this.currentChat.id === message.get('delivery').id){
+        message.relation('readedBy').add(user).save();
+        this.currentChat.callback(message);
+      } else {
+        this.addUnreadMessage(message);
+      }
+    });
+    const user = this.utils.getCurrentUser();
+    const chatUnreadMessagesQuery = new Parse.Query('ECommerceChatMessage').select('delivery').notEqualTo('readedBy', user).notEqualTo('from', user);
+    let unread = await chatUnreadMessagesQuery.find();
     unread.forEach(message => {
       this.addUnreadMessage(message);
     });
-    if (!this.chatUnreadMessagesSubscription) {
-      this.chatUnreadMessagesSubscription = await query.subscribe();
-      this.chatUnreadMessagesSubscription.on('create', (message) => {
-        this.addUnreadMessage(message);
-      });
-    }
+  }
+  public clearCurrentChat(){
+    this.currentChat = undefined;
   }
   private addUnreadMessage(message) {
     if (!this.chatUnreadMessages[message.get('delivery').id]) {
@@ -32,23 +43,11 @@ export class ChatService {
     }
     this.chatUnreadMessages[message.get('delivery').id].push(message);
   }
-  public async getChatMessages(deliveryId, update) {
+  public async getChatMessages(deliveryId, callback) {
     const user = Parse.User.current();
     let delivery = this.utils.parseGenericObjectWithId("ECommerceDelivery", deliveryId);
     const queryMessages = new Parse.Query('ECommerceChatMessage').equalTo('delivery', delivery).include('from');
     let messages = await queryMessages.find();
-    this.chatMessagesSubscription = await queryMessages.subscribe();
-    this.chatMessagesSubscription.on('create', (message) => {
-      message.relation('readedBy').add(user).save();
-      if (update) {
-        update(message);
-      }
-    });
-    this.setReadedUnreadedMessages(delivery, user);
-    return messages;
-  }
-  private async setReadedUnreadedMessages(delivery, user) {
-
     const queryUnreadMessages = new Parse.Query('ECommerceChatMessage').select('delivery').notEqualTo('readedBy', user).notEqualTo('from', user).equalTo('delivery', delivery);
     const unread = await queryUnreadMessages.find();
     unread.forEach(message => {
@@ -58,9 +57,13 @@ export class ChatService {
     if (this.chatUnreadMessages[delivery.id]) {
       delete this.chatUnreadMessages[delivery.id];
     }
+    this.currentChat = {id:deliveryId, callback: callback};
+    return messages;
   }
-  public leaveChatMessages() {
+  public exitChatServer() {
     this.chatMessagesSubscription.unsubscribe();
+    this.clearCurrentChat();
+    this.chatUnreadMessages = {};
   }
   public async sendChatMessage(deliveryId, text) {
     let message = this.utils.parseGenericObject('ECommerceChatMessage');

@@ -6,8 +6,11 @@ import Parse from 'parse';
 export class ProductService {
   public promoProductQuery = new Parse.Query("ECommerceProduct")
   .equalTo("isDiscount", true)
-  .limit(5);
-  public mainProductQuery = new Parse.Query("ECommerceProduct");
+  .equalTo("enabled",true)
+  .equalTo("status",true);
+  public mainProductQuery = new Parse.Query("ECommerceProduct")
+  .equalTo("enabled",true)
+  .equalTo("status",true);
   public config = {mainLimit: 6,promoLimit: 6};
   constructor() { }
 
